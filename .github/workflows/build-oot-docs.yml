@@ -65,7 +65,7 @@ jobs:
           echo "Updating repository variable OOT_DOCS_LAST_BUILD_SHA to $latest_sha"
           gh variable --repo ${{ github.repository }} set OOT_DOCS_LAST_BUILD_SHA --body "$latest_sha"
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
 
   deploy:
     needs: build
