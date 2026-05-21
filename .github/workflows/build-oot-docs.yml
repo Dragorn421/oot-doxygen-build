@@ -63,12 +63,7 @@ jobs:
         run: |
           latest_sha='${{ needs.check-upstream.outputs.latest_sha }}'
           echo "Updating repository variable OOT_DOCS_LAST_BUILD_SHA to $latest_sha"
-          curl -sSL -X PATCH \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/variables/OOT_DOCS_LAST_BUILD_SHA" \
-            -d "{\"name\":\"OOT_DOCS_LAST_BUILD_SHA\",\"value\":\"$latest_sha\"}"
+          gh variable set OOT_DOCS_LAST_BUILD_SHA --body "$latest_sha"
 
   deploy:
     needs: build
