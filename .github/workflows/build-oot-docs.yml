@@ -47,8 +47,11 @@ jobs:
           path: oot
 
       - name: Generate Doxygen docs
+        env:
+          DOC_COMMIT_SHA: ${{ needs.check-upstream.outputs.latest_sha }}
         run: |
           cd oot
+          sed -i "s|^PROJECT_NUMBER.*|PROJECT_NUMBER = ${DOC_COMMIT_SHA}|" Doxyfile
           doxygen Doxyfile
 
       - name: Upload GitHub Pages artifact
