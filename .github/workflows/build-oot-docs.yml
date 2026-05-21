@@ -1,16 +1,39 @@
 name: Build and Deploy OoT Doxygen Docs
 
 on:
+  schedule:
+    - cron: '0 * * * *'
   push:
     branches:
       - main
   workflow_dispatch:
 
 jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      latest_sha: ${{ steps.check.outputs.latest_sha }}
+    steps:
+      - name: Fetch latest upstream commit SHA and compare to last built SHA
+        id: check
+        run: |
+          last_built_sha='${{ vars.OOT_DOCS_LAST_BUILD_SHA }}'
+          latest_sha=$(git ls-remote https://github.com/zeldaret/oot HEAD | cut -f1)
+          echo "latest_sha=$latest_sha" >> "$GITHUB_OUTPUT"
+          if [ -z "$last_built_sha" ] || [ "$latest_sha" != "$last_built_sha" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
     steps:
       - name: Install Doxygen and Graphviz
         run: |
@@ -32,6 +55,17 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: oot/docs/doxygen/html
+
+      - name: Update last built commit SHA variable
+        run: |
+          latest_sha='${{ needs.check-upstream.outputs.latest_sha }}'
+          echo "Updating repository variable OOT_DOCS_LAST_BUILD_SHA to $latest_sha"
+          curl -sSL -X PUT \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/variables/OOT_DOCS_LAST_BUILD_SHA" \
+            -d "{\"name\":\"OOT_DOCS_LAST_BUILD_SHA\",\"value\":\"$latest_sha\"}"
 
   deploy:
     needs: build
