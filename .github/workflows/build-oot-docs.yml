@@ -1,0 +1,44 @@
+name: Build and Deploy OoT Doxygen Docs
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Install Doxygen and Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Checkout OoT repository
+        uses: actions/checkout@v6
+        with:
+          repository: zeldaret/oot
+          path: oot
+
+      - name: Generate Doxygen docs
+        run: |
+          cd oot
+          doxygen Doxyfile
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: oot/docs/doxygen/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
